@@ -1,0 +1,10 @@
+name = "work-task-logger"
+main = "src/src/index.js"
+compatibility_date = "2023-08-23"
+workers_dev = true
+preview_urls = false
+
+[[d1_databases]]
+binding = "DATABASE"
+database_id = "f72b1578-d6c2-4507-b980-6d753195f182"
+database_name = "work-task-logger-db"

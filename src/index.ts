@@ -48,6 +48,7 @@ export default {
 		try {
 			const payload = await request.text();
 
+
 			const expectedHmac = request.headers.get('x-todoist-hmac-sha256');
 			const generatedHmac = await generateTodoistHmac(payload, TODOIST_CLIENT_SECRET);
 			if (generatedHmac !== expectedHmac) {
@@ -104,4 +105,13 @@ async function generateTodoistHmac(payload, todoistSecret) {
 	const key = await crypto.subtle.importKey('raw', encoder.encode(todoistSecret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
 	const hmac = await crypto.subtle.sign('HMAC', key, data);
 	return btoa(String.fromCharCode(...new Uint8Array(hmac)));
+}
+
+async function assertIsAuthenticTodoistWebhook(request, TODOIST_CLIENT_SECRET) {
+	const payload = await request.text();
+	const expectedHmac = request.headers.get('x-todoist-hmac-sha256');
+	const generatedHmac = await generateTodoistHmac(payload, TODOIST_CLIENT_SECRET);
+	if (generatedHmac !== expectedHmac) {
+		return new Response('Signature mismatch', { status: 401 });
+	}
 }

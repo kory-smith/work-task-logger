@@ -1,5 +1,41 @@
 const WORK_PROJECT_ID = '2202602227';
 
+// const example = {
+// 	event_data: {
+// 		can_assign_tasks: false,
+// 		child_order: 0,
+// 		collapsed: false,
+// 		color: 'teal',
+// 		created_at: '2025-01-29T23:48:54.935002Z',
+// 		default_order: 0,
+// 		description: '',
+// 		id: '2348004722',
+// 		is_archived: true,
+// 		is_deleted: false,
+// 		is_favorite: false,
+// 		is_frozen: false,
+// 		name: 'pis piss',
+// 		parent_id: null,
+// 		shared: false,
+// 		sync_id: null,
+// 		updated_at: '2025-01-29T23:50:11.296363Z',
+// 		v2_id: '6X9JGxPp6XFv3hRr',
+// 		v2_parent_id: null,
+// 		view_style: 'list',
+// 	},
+// 	event_name: 'project:archived',
+// 	initiator: {
+// 		email: 'kor54e@gmail.com',
+// 		full_name: 'Kory Smith',
+// 		id: '21041386',
+// 		image_id: 'b41f5c5c89fc4f9cb02f51165d110303',
+// 		is_premium: true,
+// 	},
+// 	triggered_at: '2025-01-29T23:50:12.392023Z',
+// 	user_id: '21041386',
+// 	version: '9',
+// };
+
 // src/index.js
 export default {
 	async fetch(request, env) {
@@ -21,8 +57,6 @@ export default {
 			const parsedPayload = JSON.parse(payload);
 			const { event_name, event_data } = parsedPayload;
 
-			console.log('For kory debugging');
-			console.log({ event_name, event_data });
 			if (!event_name || !event_data) {
 				return new Response('Invalid payload', { status: 400 });
 			}
@@ -40,7 +74,18 @@ export default {
 			}
 
 			if (event_data.parent_id === WORK_PROJECT_ID) {
-				if (event_name === 'project:added' || event_name === 'project:archived' || event_name === 'project:updated') {
+				if (event_name === 'project:added' || event_name === 'project:updated') {
+					await DATABASE.prepare(
+						`INSERT INTO projects (id, name, started_at)
+             VALUES (?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+             name = excluded.name`
+					)
+						.bind(event_data.id, event_data.name, event_data.created_at)
+						.run();
+				}
+
+				if (event_name === 'project:archived') {
 					await DATABASE.prepare(
 						`INSERT INTO projects (id, name, started_at, completed_at)
              VALUES (?, ?, ?, ?)
@@ -48,7 +93,7 @@ export default {
              name = excluded.name,
              completed_at = excluded.completed_at`
 					)
-						.bind(event_data.id, event_data.name, event_data.created_at, event_name === 'project:archived' ? event_data.completed_at : null)
+						.bind(event_data.id, event_data.name, event_data.created_at, event_data.updated_at)
 						.run();
 				}
 			}

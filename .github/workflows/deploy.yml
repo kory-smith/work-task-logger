@@ -1,0 +1,23 @@
+name: Deploy Cloudflare Worker
+
+on:
+  push:
+    branches:
+      - main  # Change if your default branch is different
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Authenticate with Cloudflare
+        run: wrangler login --api-token ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Deploy Worker
+        run: wrangler deploy

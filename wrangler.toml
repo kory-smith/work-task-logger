@@ -3,6 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2023-08-23"
 workers_dev = true
 preview_urls = false
+observability.enabled = true
 
 [[d1_databases]]
 binding = "DATABASE"

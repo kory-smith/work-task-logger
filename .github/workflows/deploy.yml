@@ -10,14 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
 
       - name: Install Wrangler
-        run: npm install -g wrangler
+        run: bun install -g wrangler
 
       - name: Authenticate with Cloudflare
-        run: wrangler login --api-token ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: wrangler login
 
       - name: Deploy Worker
         run: wrangler deploy

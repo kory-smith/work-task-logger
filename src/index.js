@@ -77,7 +77,7 @@ export default {
 				if (event_name === 'project:added' || event_name === 'project:updated') {
 					await DATABASE.prepare(
 						`INSERT INTO projects (id, name, started_at)
-             VALUES (?, ?, ?, ?)
+             VALUES (?, ?, ?)
              ON CONFLICT(id) DO UPDATE SET
              name = excluded.name`
 					)

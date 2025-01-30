@@ -74,26 +74,18 @@ export default {
 			}
 
 			if (event_data.parent_id === WORK_PROJECT_ID) {
-				if (event_name === 'project:added' || event_name === 'project:updated') {
-					await DATABASE.prepare(
-						`INSERT INTO projects (id, name, started_at)
-             VALUES (?, ?, ?)
-             ON CONFLICT(id) DO UPDATE SET
-             name = excluded.name`
-					)
-						.bind(event_data.id, event_data.name, event_data.created_at)
-						.run();
-				}
-
-				if (event_name === 'project:archived') {
+				if (event_name === 'project:added' || event_name === 'project:updated' || event_name === 'project:archived') {
 					await DATABASE.prepare(
 						`INSERT INTO projects (id, name, started_at, completed_at)
-             VALUES (?, ?, ?, ?)
-             ON CONFLICT(id) DO UPDATE SET
-             name = excluded.name,
-             completed_at = excluded.completed_at`
+						 VALUES (?, ?, ?, ?)
+						 ON CONFLICT(id) DO UPDATE
+							 SET name = excluded.name,
+									 completed_at = CASE
+										 WHEN excluded.completed_at IS NOT NULL THEN excluded.completed_at
+										 ELSE projects.completed_at
+									 END`
 					)
-						.bind(event_data.id, event_data.name, event_data.created_at, event_data.updated_at)
+						.bind(event_data.id, event_data.name, event_data.created_at, event_name === 'project:archived' ? event_data.updated_at : null)
 						.run();
 				}
 			}

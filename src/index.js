@@ -30,16 +30,12 @@ export default {
         return new Response("Invalid payload", { status: 400 });
       }
 
-      const currentTimestamp = new Date()
-        .toISOString()
-        .replace(/\.\d{3}Z$/, "Z");
-
       if (event_name === "item:completed") {
         await DATABASE.prepare(
-          `INSERT INTO tasks (id, project_id, content, created_at, completed_at) 
+          `INSERT INTO tasks (id, project_id, content, created_at, completed_at)
            VALUES (?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET 
-           content = excluded.content, 
+           ON CONFLICT(id) DO UPDATE SET
+           content = excluded.content,
            completed_at = excluded.completed_at`
         )
           .bind(
@@ -61,8 +57,8 @@ export default {
           await DATABASE.prepare(
             `INSERT INTO projects (id, name, started_at, completed_at)
              VALUES (?, ?, ?, ?)
-             ON CONFLICT(id) DO UPDATE SET 
-             name = excluded.name, 
+             ON CONFLICT(id) DO UPDATE SET
+             name = excluded.name,
              completed_at = excluded.completed_at`
           )
             .bind(

@@ -1,42 +1,3 @@
-const WORK_PROJECT_ID = '2202602227';
-
-// const example = {
-// 	event_data: {
-// 		can_assign_tasks: false,
-// 		child_order: 0,
-// 		collapsed: false,
-// 		color: 'teal',
-// 		created_at: '2025-01-29T23:48:54.935002Z',
-// 		default_order: 0,
-// 		description: '',
-// 		id: '2348004722',
-// 		is_archived: true,
-// 		is_deleted: false,
-// 		is_favorite: false,
-// 		is_frozen: false,
-// 		name: 'pis piss',
-// 		parent_id: null,
-// 		shared: false,
-// 		sync_id: null,
-// 		updated_at: '2025-01-29T23:50:11.296363Z',
-// 		v2_id: '6X9JGxPp6XFv3hRr',
-// 		v2_parent_id: null,
-// 		view_style: 'list',
-// 	},
-// 	event_name: 'project:archived',
-// 	initiator: {
-// 		email: 'kor54e@gmail.com',
-// 		full_name: 'Kory Smith',
-// 		id: '21041386',
-// 		image_id: 'b41f5c5c89fc4f9cb02f51165d110303',
-// 		is_premium: true,
-// 	},
-// 	triggered_at: '2025-01-29T23:50:12.392023Z',
-// 	user_id: '21041386',
-// 	version: '9',
-// };
-
-// src/index.js
 export default {
 	async fetch(request, env) {
 		const { DATABASE, TODOIST_CLIENT_SECRET } = env;
@@ -48,12 +9,7 @@ export default {
 		try {
 			const payload = await request.text();
 
-
-			const expectedHmac = request.headers.get('x-todoist-hmac-sha256');
-			const generatedHmac = await generateTodoistHmac(payload, TODOIST_CLIENT_SECRET);
-			if (generatedHmac !== expectedHmac) {
-				return new Response('Signature mismatch', { status: 401 });
-			}
+			await assertIsAuthenticTodoistWebhook(request, payload, TODOIST_CLIENT_SECRET);
 
 			const parsedPayload = JSON.parse(payload);
 			const { event_name, event_data } = parsedPayload;
@@ -74,7 +30,7 @@ export default {
 					.run();
 			}
 
-			if (event_data.parent_id === WORK_PROJECT_ID) {
+			if (isWorkProject(event_data)) {
 				if (event_name === 'project:added' || event_name === 'project:updated' || event_name === 'project:archived') {
 					await DATABASE.prepare(
 						`INSERT INTO projects (id, name, started_at, completed_at)
@@ -94,10 +50,17 @@ export default {
 			return new Response('Data processed successfully', { status: 200 });
 		} catch (error) {
 			console.error('Error processing request:', error);
-			return new Response('Internal Server Error', { status: 500 });
+			if (error.cause === 'signature_mismatch') {
+				return new Response('Signature mismatch', { status: 401 });
+			} else return new Response('Internal Server Error', { status: 500 });
 		}
 	},
 };
+
+function isWorkProject(event_data) {
+	const workColors = ['blue', 'teal', 'sky_blue', 'light_blue'];
+	return workColors.some((color) => color === event_data.color);
+}
 
 async function generateTodoistHmac(payload, todoistSecret) {
 	const encoder = new TextEncoder();
@@ -107,11 +70,10 @@ async function generateTodoistHmac(payload, todoistSecret) {
 	return btoa(String.fromCharCode(...new Uint8Array(hmac)));
 }
 
-async function assertIsAuthenticTodoistWebhook(request, TODOIST_CLIENT_SECRET) {
-	const payload = await request.text();
+async function assertIsAuthenticTodoistWebhook(request, payload, TODOIST_CLIENT_SECRET) {
 	const expectedHmac = request.headers.get('x-todoist-hmac-sha256');
 	const generatedHmac = await generateTodoistHmac(payload, TODOIST_CLIENT_SECRET);
 	if (generatedHmac !== expectedHmac) {
-		return new Response('Signature mismatch', { status: 401 });
+		throw Error('Signature mismatch', { cause: 'signature_mismatch' });
 	}
 }
